@@ -1,0 +1,1 @@
+<x-layout title="Page not found"><section class="page-hero container"><p class="eyebrow">404 / A DIFFERENT DIRECTION</p><h1>Let's get you<br><em>back on track.</em></h1><p>The page you're looking for isn't here. Explore our services or return to the homepage.</p><a class="button" href="{{ route('home') }}">Back to home →</a></section></x-layout>

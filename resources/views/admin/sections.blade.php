@@ -1,0 +1,6 @@
+<x-admin-layout title="Website sections">
+<p class="eyebrow">FULL WEBSITE EDITOR</p><h1>Every section, in your hands.</h1><p>Edit headings, copy, buttons, images and repeated items. Reorder sections with display order, and hide sections when needed. Page headlines and main images are under Pages.</p>
+@foreach($sections->groupBy('scope') as $scope => $group)
+<section class="section-list"><h2>{{ ucfirst($scope) }}</h2><div class="table-panel"><table><thead><tr><th>Section</th><th>Visibility</th><th>Order</th><th>Action</th></tr></thead><tbody>@foreach($group as $record)<tr><td>{{ config('website.sections')[$record->key]['label'] ?? $record->key }}</td><td>@if(in_array(config('website.sections')[$record->key]['variant'] ?? '', ['labels', 'screen'], true))<span class="visibility-fixed">Always on</span>@else<x-visibility-toggle :action="route('admin.sections.visibility', $record->id)" :enabled="(bool) $record->is_visible" :label="config('website.sections')[$record->key]['label'] ?? $record->key"/>@endif</td><td>{{ $record->sort_order }}</td><td><a class="text-link" href="{{ route('admin.sections.edit', $record->id) }}">Edit &rarr;</a></td></tr>@endforeach</tbody></table></div></section>
+@endforeach
+</x-admin-layout>

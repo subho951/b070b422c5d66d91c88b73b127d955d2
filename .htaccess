@@ -1,0 +1,37 @@
+# Local XAMPP entry point for installations serving the parent www directory.
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+Require all granted
+
+RewriteEngine On
+
+# If the optional Apache alias is active, let public/.htaccess handle it.
+RewriteCond %{REQUEST_FILENAME} /public(?:/|$) [NC]
+RewriteCond %{REQUEST_URI} !^/b070b422c5d66d91c88b73b127d955d2/public(?:/|$) [NC]
+RewriteRule ^ - [L]
+
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{HTTP:x-xsrf-token} .
+RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+# Never serve hidden paths or Laravel's private directories.
+RewriteRule (^|/)\. - [F,END]
+RewriteRule ^(?:app|bootstrap|config|database|node_modules|resources|routes|storage|tests|vendor)(?:/|$) - [F,END,NC]
+
+# Keep the public directory out of the browser URL.
+RewriteRule ^public/?$ /b070b422c5d66d91c88b73b127d955d2/ [R=302,END]
+RewriteRule ^public/(.*)$ /b070b422c5d66d91c88b73b127d955d2/$1 [R=302,END]
+
+# Serve only public static assets; never use a repository-wide -f/-d bypass.
+RewriteRule ^((?:build|images|fonts|brand)/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+\.(?:css|js|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf))$ public/$1 [END,NC]
+RewriteRule ^(favicon\.svg|robots\.txt)$ public/$1 [END]
+RewriteRule ^sitemap\.xml$ index.php [END]
+RewriteRule ^index\.php$ - [END]
+
+# Repository files, configuration, and unknown file extensions are private.
+RewriteRule ^(?:artisan|AGENTS\.md|CLAUDE\.md|README\.md)$ - [F,END,NC]
+RewriteRule \.[A-Za-z0-9]+$ - [F,END]
+
+# All remaining requests go through Laravel, including existing directories.
+RewriteRule ^ index.php [END]

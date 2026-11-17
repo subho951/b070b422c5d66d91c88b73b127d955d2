@@ -1,0 +1,1 @@
+<x-layout :title="$pageContent->title" :description="$pageContent->description"><x-page-intro :page-content="$pageContent" label="SERVICES & SOLUTIONS"/><section class="section section-tight"><div class="container"><x-services/></div></section><x-cta/></x-layout>

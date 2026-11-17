@@ -1,0 +1,84 @@
+<?php
+
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContentController;
+use App\Http\Controllers\EnquiryController;
+use App\Http\Controllers\MediaController;
+use App\Http\Controllers\OfficeController;
+use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WebsiteDesignController;
+use App\Http\Middleware\VerifyRecaptcha;
+use App\Http\Middleware\WebsiteMaintenance;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware(WebsiteMaintenance::class)->group(function (): void {
+    Route::get('/', [PublicController::class, 'page'])->name('home');
+    foreach (['about', 'services', 'portfolio', 'testimonials', 'contact', 'engagement', 'privacy', 'terms'] as $page) {
+        Route::get('/'.$page, [PublicController::class, 'page'])->defaults('page', $page)->name($page);
+    }
+    Route::redirect('/about-us', '/about');
+    Route::redirect('/contact-us', '/contact');
+    Route::redirect('/solutions', '/services');
+    Route::get('/services/{slug}', [PublicController::class, 'service'])->name('services.show');
+    Route::get('/portfolio/{slug}', [PublicController::class, 'project'])->name('portfolio.show');
+    Route::post('/contact', [EnquiryController::class, 'store'])->middleware('throttle:5,10')->name('enquiries.store');
+    Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('sitemap');
+});
+Route::get('/media/{id}', [MediaController::class, 'show'])->whereNumber('id')->name('media.show');
+Route::get('/robots.txt', fn () => response("User-agent: *\nDisallow: /admin\nSitemap: ".route('sitemap')."\n")->header('Content-Type', 'text/plain'));
+Route::view('/login', 'auth.login')->middleware('guest')->name('login');
+Route::post('/login', [AuthController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('login.store');
+Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth')->withoutMiddleware(VerifyRecaptcha::class)->name('logout');
+Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/office/{module}', [OfficeController::class, 'index'])->name('office.index');
+    Route::get('/office/{module}/create', [OfficeController::class, 'form'])->name('office.create');
+    Route::get('/office/{module}/{id}/edit', [OfficeController::class, 'form'])->whereNumber('id')->name('office.edit');
+    Route::post('/office/{module}', [OfficeController::class, 'save'])->name('office.store');
+    Route::put('/office/{module}/{id}', [OfficeController::class, 'save'])->whereNumber('id')->name('office.update');
+    Route::delete('/office/{module}/{id}', [OfficeController::class, 'destroy'])->whereNumber('id')->name('office.destroy');
+    Route::get('/customers/{customer}/wallet', [OfficeController::class, 'wallet'])->whereNumber('customer')->name('wallet.show');
+    Route::post('/customers/{customer}/wallet', [OfficeController::class, 'walletStore'])->whereNumber('customer')->name('wallet.store');
+    Route::get('/invoices', [OfficeController::class, 'invoices'])->name('invoices.index');
+    Route::get('/invoices/create', [OfficeController::class, 'invoiceForm'])->name('invoices.create');
+    Route::post('/invoices', [OfficeController::class, 'invoiceSave'])->name('invoices.store');
+    Route::get('/invoices/{id}', [OfficeController::class, 'invoiceShow'])->whereNumber('id')->name('invoices.show');
+    Route::get('/invoices/{id}/edit', [OfficeController::class, 'invoiceForm'])->whereNumber('id')->name('invoices.edit');
+    Route::put('/invoices/{id}', [OfficeController::class, 'invoiceSave'])->whereNumber('id')->name('invoices.update');
+    Route::patch('/invoices/{id}/status', [OfficeController::class, 'invoiceStatus'])->whereNumber('id')->name('invoices.status');
+    Route::post('/invoices/{id}/payments', [OfficeController::class, 'paymentStore'])->whereNumber('id')->name('invoices.payments.store');
+    Route::patch('/invoices/{id}/payments/{payment}/void', [OfficeController::class, 'paymentVoid'])->whereNumber(['id', 'payment'])->name('invoices.payments.void');
+    Route::get('/login-logs', [OfficeController::class, 'loginLogs'])->name('login-logs');
+    Route::get('/reports/{type}', [OfficeController::class, 'report'])->name('reports.show');
+    Route::get('/media', [MediaController::class, 'index'])->name('media.index');
+    Route::get('/media/library', [MediaController::class, 'library'])->name('media.library');
+    Route::delete('/media', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+    Route::post('/media', [MediaController::class, 'store'])->name('media.store');
+    Route::patch('/media/{id}', [MediaController::class, 'update'])->whereNumber('id')->name('media.update');
+    Route::delete('/media/{id}', [MediaController::class, 'destroy'])->whereNumber('id')->name('media.destroy');
+    Route::get('/sections', [WebsiteDesignController::class, 'index'])->name('sections.index');
+    Route::get('/sections/{id}/edit', [WebsiteDesignController::class, 'edit'])->whereNumber('id')->name('sections.edit');
+    Route::patch('/sections/{id}/visibility', [WebsiteDesignController::class, 'visibility'])->whereNumber('id')->name('sections.visibility');
+    Route::put('/sections/{id}', [WebsiteDesignController::class, 'update'])->whereNumber('id')->name('sections.update');
+    Route::get('/appearance', [WebsiteDesignController::class, 'appearance'])->name('appearance');
+    Route::put('/appearance', [WebsiteDesignController::class, 'saveAppearance'])->name('appearance.update');
+    Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+    Route::patch('/enquiries/{enquiry}', [ContentController::class, 'enquiry'])->name('enquiries.update');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::put('/settings/branding', [WebsiteDesignController::class, 'saveAppearance'])->name('settings.branding.update');
+    Route::put('/settings/password', [SettingsController::class, 'password'])->middleware('throttle:5,1')->name('settings.password');
+    Route::put('/settings/email', [SettingsController::class, 'email'])->name('settings.email');
+    Route::put('/settings/reviews', [SettingsController::class, 'reviews'])->name('settings.reviews');
+    Route::put('/settings/sms', [SettingsController::class, 'sms'])->name('settings.sms');
+    Route::put('/settings', [ContentController::class, 'saveSettings'])->name('settings.update');
+    Route::get('/content/{section}', [ContentController::class, 'index'])->name('content.index');
+    Route::get('/content/{section}/create', [ContentController::class, 'create'])->name('content.create');
+    Route::post('/content/{section}', [ContentController::class, 'store'])->name('content.store');
+    Route::get('/content/{section}/{id}/edit', [ContentController::class, 'edit'])->whereNumber('id')->name('content.edit');
+    Route::patch('/content/portfolio/{id}/homepage', [ContentController::class, 'homepage'])->whereNumber('id')->name('content.homepage');
+    Route::patch('/content/portfolio/{id}/exclusive', [ContentController::class, 'exclusive'])->whereNumber('id')->name('content.exclusive');
+    Route::patch('/content/{section}/{id}/visibility', [ContentController::class, 'visibility'])->whereNumber('id')->name('content.visibility');
+    Route::put('/content/{section}/{id}', [ContentController::class, 'update'])->whereNumber('id')->name('content.update');
+    Route::delete('/content/{section}/{id}', [ContentController::class, 'destroy'])->whereNumber('id')->name('content.destroy');
+});

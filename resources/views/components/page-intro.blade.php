@@ -1,0 +1,3 @@
+@props(['pageContent', 'label' => ''])
+<section class="page-hero"><div class="container"><p class="eyebrow">{{ $pageContent->eyebrow ?? config('website.page_labels.'.$pageContent->slug, $label) }}</p><h1>{{ $pageContent->title }}</h1><p>{{ $pageContent->description }}</p><x-media-image :id="$pageContent->featured_image_id" image-class="page-featured-image" loading="eager"/><div class="page-rule"><span>{{ $website->branding('site_name') }}</span><span>{{ $website->branding('tagline') }}</span></div></div></section>
+@if($pageContent->content)<section class="section section-tight"><div class="container prose editorial-content">{{ $pageContent->content }}</div></section>@endif

@@ -1,0 +1,13 @@
+<form method="post" action="{{ route('admin.settings.email', ['tab' => 'email']) }}">@csrf @method('PUT')
+<p class="settings-help">Configure SMTP delivery for new enquiry notifications. Saving settings does not send a test message. Leave the password blank to keep the existing credential.</p>
+<div class="settings-fields">
+<div class="field"><label for="enabled">Email notifications</label><select id="enabled" name="enabled"><option value="0" @selected(old('enabled',$settings['email.enabled'] ?? '0') == '0')>Disabled</option><option value="1" @selected(old('enabled',$settings['email.enabled'] ?? '0') == '1')>Enabled</option></select></div>
+<div class="field"><label for="host">SMTP host</label><input id="host" name="host" value="{{ old('host',$settings['email.host'] ?? config('mail.mailers.smtp.host')) }}" maxlength="255"></div>
+<div class="field"><label for="port">SMTP port</label><input id="port" name="port" type="number" min="1" max="65535" value="{{ old('port',$settings['email.port'] ?? 587) }}"></div>
+<div class="field"><label for="scheme">Connection security</label><select id="scheme" name="scheme"><option value="smtp" @selected(old('scheme',$settings['email.scheme'] ?? 'smtp') === 'smtp')>STARTTLS (usually port 587)</option><option value="smtps" @selected(old('scheme',$settings['email.scheme'] ?? '') === 'smtps')>SSL/TLS (usually port 465)</option></select></div>
+<div class="field"><label for="username">SMTP username</label><input id="username" name="username" value="{{ old('username',$settings['email.username'] ?? '') }}" maxlength="255" autocomplete="off"></div>
+<div><x-field name="smtp_password" label="SMTP password" type="password" autocomplete="new-password" maxlength="1000"/><p class="settings-help">{{ $hasMailPassword ? 'A credential is configured. Leave blank to keep it.' : 'No credential is configured yet.' }}</p></div>
+<div class="field"><label for="from_address">From email address</label><input type="email" id="from_address" name="from_address" value="{{ old('from_address',$settings['email.from_address'] ?? config('mail.from.address')) }}" maxlength="255"></div>
+<div class="field"><label for="from_name">From name</label><input id="from_name" name="from_name" value="{{ old('from_name',$settings['email.from_name'] ?? config('mail.from.name')) }}" maxlength="255"></div>
+<div class="field"><label for="notification_email">Administrator notification email</label><input type="email" id="notification_email" name="notification_email" value="{{ old('notification_email',$settings['email.notification_email'] ?? config('howvanta.notification_email')) }}" maxlength="255"></div>
+</div><div class="settings-submit"><button class="button" type="submit">Save email settings &rarr;</button></div></form>

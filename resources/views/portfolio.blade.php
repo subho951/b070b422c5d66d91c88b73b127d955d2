@@ -1,0 +1,1 @@
+<x-layout :title="$pageContent->title" :description="$pageContent->description"><x-page-intro :page-content="$pageContent" label="SELECTED PROJECTS"/><section class="section section-tight portfolio-listing"><div class="container"><x-projects/></div></section><x-cta/></x-layout>
