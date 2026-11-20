@@ -13,6 +13,7 @@ Corporate website and the Phase 1 foundation of a private office workspace. Buil
 - Named routes, canonical and Open Graph metadata, sitemap, robots policy, favicon, and security headers. Private responses use no-store and noindex headers.
 - Secure interactive commands to create an administrator and reset a password. No seeded accounts or committed passwords.
 
+
 ## Requirements and detected environment
 
 Detected: PHP **8.5.5**, Composer **2.9.5**, Node **26.10.0**, npm **11.19.1**. Installed framework: **Laravel 13.35.0** (locked in composer.lock). PHP 8.3+ is required by Laravel 13; use a currently supported PHP release compatible with all locked dependencies.
