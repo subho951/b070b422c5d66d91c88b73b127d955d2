@@ -8,7 +8,7 @@
         <x-media-picker :name="'data['.$key.']'" :selected="$value" :label="$field['label']"/>
     @elseif($field['type'] === 'items')
         @php($entries = is_array($value) ? array_values($value) : [])
-        <div class="field" data-repeater data-next-index="{{ count($entries) }}"><h2>Items</h2><p>Add, remove or move items to change their display order. Up to 40 items.</p><input type="hidden" name="data[items]" value=""><div data-repeater-items>@foreach($entries as $index => $item)<x-section-item :index="$index" :item="$item" :menu="$definition['variant'] === 'menu'"/>@endforeach</div><template data-repeater-template><x-section-item index="__INDEX__" :menu="$definition['variant'] === 'menu'"/></template><button class="button button-small" type="button" data-item-add>Add item +</button></div>
+        <div class="field" data-repeater data-next-index="{{ count($entries) }}"><h2>{{ $field['label'] }}</h2><p>Add, remove or move items to change their display order. Up to 40 items.</p><input type="hidden" name="data[items]" value=""><div data-repeater-items>@foreach($entries as $index => $item)<x-section-item :index="$index" :item="$item" :menu="$definition['variant'] === 'menu'"/>@endforeach</div><template data-repeater-template><x-section-item index="__INDEX__" :menu="$definition['variant'] === 'menu'"/></template><button class="button button-small" type="button" data-item-add>Add item +</button></div>
     @else
         <div class="field"><label for="data-{{ $key }}">{{ $field['label'] }}</label><textarea name="data[{{ $key }}]" id="data-{{ $key }}" rows="{{ $field['type'] === 'textarea' ? 4 : 2 }}">{{ is_scalar($value) ? $value : '' }}</textarea></div>
     @endif

@@ -28,7 +28,6 @@ return [
     'Bhutan' => 'BTN',
     'Bolivia' => 'BOB',
     'Bonaire, Sint Eustatius and Saba' => 'USD',
-    'Bosnia & Herzegovina' => 'BAM',
     'Bosnia and Herzegovina' => 'BAM',
     'Botswana' => 'BWP',
     'Brazil' => 'BRL',

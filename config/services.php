@@ -22,13 +22,6 @@ return [
         'hostnames' => array_filter(array_map('trim', explode(',', env('RECAPTCHA_HOSTNAMES', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost')))),
     ],
 
-    'google_reviews' => [
-        'enabled' => env('GOOGLE_REVIEWS_ENABLED', false),
-        'api_key' => env('GOOGLE_PLACES_API_KEY'),
-        'place_id' => env('GOOGLE_REVIEWS_PLACE_ID'),
-        'profile_url' => 'https://www.google.com/search?q=Howvanta+Technologies&stick=H4sIAAAAAAAA_-NgU1I1qDBONDAytzRPSko0MbJMMUyzMqgwTDUwMTYwMkoyMzMwN08xWcQq6pFfXpaYV5KoEJKanJGXn5OfnplaDABw9VVAQQAAAA&hl=en-GB',
-    ],
-
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

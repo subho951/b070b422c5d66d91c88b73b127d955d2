@@ -295,7 +295,9 @@ class LegacyDataImporter
         }
         foreach ($this->rows['db_image_galleries'] ?? [] as $row) {
             $category = collect($this->rows['db_image_category'] ?? [])->firstWhere('id', $row['category_id']);
-            $this->insert('db_image_galleries', $row['id'], 'portfolio_projects', ['title' => $row['image_title'], 'slug' => 'legacy-project-'.$row['id'].'-'.Str::slug($row['image_title']), 'category' => mb_substr($category['category_name'] ?? '', 0, 100), 'description' => strip_tags($row['product_description'] ?? ''), 'content' => strip_tags($row['product_description'] ?? ''), 'seo_description' => strip_tags($row['meta_description'] ?? ''), 'featured_image_id' => $this->media($row['images'], 'project'), 'status' => 'draft', 'is_demonstration' => false, 'created_at' => $this->date($row['created'] ?? null)]);
+            $legacySlug = 'legacy-project-'.$row['id'].'-'.Str::slug($row['image_title']);
+            $knownProject = config('portfolio-catalog.legacy')[$legacySlug] ?? null;
+            $this->insert('db_image_galleries', $row['id'], 'portfolio_projects', ['title' => $knownProject[1] ?? $row['image_title'], 'slug' => $knownProject[0] ?? $legacySlug, 'category' => mb_substr($category['category_name'] ?? '', 0, 100), 'description' => strip_tags($row['product_description'] ?? ''), 'content' => strip_tags($row['product_description'] ?? ''), 'seo_description' => strip_tags($row['meta_description'] ?? ''), 'featured_image_id' => $this->media($row['images'], 'project'), 'status' => 'draft', 'is_demonstration' => false, 'created_at' => $this->date($row['created'] ?? null)]);
         }
     }
 

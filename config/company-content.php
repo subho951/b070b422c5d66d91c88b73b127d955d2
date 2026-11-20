@@ -19,7 +19,7 @@ return [
         ],
         'testimonials' => [
             'title' => 'Feedback that helps you choose.',
-            'description' => 'Explore our Google Business profile and client feedback to understand the experience of working with Howvanta Technologies. If we have worked together, we welcome your honest review.',
+            'description' => 'Read feedback from clients who worked with Howvanta Technologies on websites, software and digital products.',
             'content' => '',
         ],
     ],
@@ -108,7 +108,7 @@ The right starting point is a clear conversation. Tell us about your business, w
                 ],
                 [
                     'title' => 'Google services and external content',
-                    'text' => 'The site loads webfonts from Google Fonts. When enabled, Google reCAPTCHA helps assess requests for automated abuse and may process browser interactions and technical information. Our Testimonials page links to our Google Business profile; if automatic reviews are enabled, Google Maps review content and reviewer attribution may also be displayed. Following Google links or loading Google-hosted resources involves Google\'s own processing practices. See Google\'s Privacy Policy for details.',
+                    'text' => 'The site loads webfonts from Google Fonts. When enabled, Google reCAPTCHA helps assess requests for automated abuse and may process browser interactions and technical information. If you choose to open the map on our Contact page, Google Maps provides the map content. Following Google links or loading Google-hosted resources involves Google\'s own processing practices. See Google\'s Privacy Policy for details.',
                     'url' => 'https://policies.google.com/privacy',
                 ],
                 [
@@ -193,8 +193,8 @@ The right starting point is a clear conversation. Tell us about your business, w
                     'url' => '',
                 ],
                 [
-                    'title' => 'Testimonials and Google reviews',
-                    'text' => 'Client feedback reflects the experience and opinion of the individual author and does not guarantee a particular result for another project. Google review content, when available, is attributed to its original source and author; Google determines the selection returned by its service. Links to our profile allow you to read the wider context or share your own honest feedback. Please follow Google\'s terms when using those services.',
+                    'title' => 'Client testimonials',
+                    'text' => 'Client feedback reflects the experience and opinion of the individual author and does not guarantee a particular result for another project. Testimonials are published with the client\'s permission.',
                     'url' => 'https://policies.google.com/terms',
                 ],
                 [

@@ -114,7 +114,7 @@ class WebsiteEditingTest extends TestCase
         $this->put('/admin/sections/'.$id, $data)->assertRedirect('/admin/sections')->assertSessionHasNoErrors();
         $this->get('/')->assertSee('Our revised process')->assertSee('Explore together')->assertDontSee('Feedback guides what comes next.');
         $this->put('/admin/sections/'.$id, array_replace($data, ['sort_order' => 0]))->assertRedirect();
-        $this->get('/')->assertSeeInOrder(['Our revised process', 'Real challenges.']);
+        $this->get('/')->assertSeeInOrder(['Our revised process', 'How we can help']);
         $this->put('/admin/sections/'.$id, array_replace($data, ['is_visible' => 0]))->assertRedirect();
         $this->get('/')->assertDontSee('Our revised process');
     }

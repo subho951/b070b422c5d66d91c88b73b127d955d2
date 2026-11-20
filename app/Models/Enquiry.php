@@ -9,7 +9,7 @@ class Enquiry extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'email', 'company', 'country', 'phone', 'project_type', 'budget', 'budget_currency', 'timeline', 'description', 'privacy_consent'];
+    protected $fillable = ['name', 'email', 'company', 'country', 'phone', 'intent', 'project_type', 'budget', 'budget_currency', 'timeline', 'description', 'privacy_consent'];
 
     protected function casts(): array
     {

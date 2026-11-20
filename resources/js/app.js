@@ -441,3 +441,157 @@ if (mediaDialog) {
         }
     });
 }
+
+const contactClickUrl = document.querySelector('meta[name="contact-click-url"]')?.content;
+const contactClickToken = document.querySelector('meta[name="contact-click-token"]')?.content;
+
+if (contactClickUrl && contactClickToken) {
+    const recordAction = action => {
+        fetch(contactClickUrl, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': contactClickToken },
+            body: new URLSearchParams({ action }),
+            keepalive: true,
+            referrerPolicy: 'no-referrer',
+        }).catch(() => {});
+    };
+
+    document.addEventListener('click', event => {
+        const link = event.target.closest?.('a[href]');
+        if (!link) return;
+
+        const action = link.dataset.contactAction ?? { 'mailto:': 'email', 'tel:': 'phone' }[link.protocol];
+        if (action) recordAction(action);
+    });
+
+    document.querySelector('[data-enquiry-form]')?.addEventListener('input', () => recordAction('form_start'), { once: true });
+}
+
+const enquiryIntent = document.querySelector('#intent');
+const enquiryService = document.querySelector('#project_type');
+enquiryIntent?.addEventListener('change', () => {
+    enquiryService.required = enquiryIntent.value === 'quote';
+});
+
+const countrySearch = document.querySelector('#country-search');
+if (countrySearch && country) {
+    const countryOptions = [...country.options].map(option => option.cloneNode(true));
+    countrySearch.hidden = false;
+    countrySearch.addEventListener('input', () => {
+        const query = countrySearch.value.trim().toLocaleLowerCase();
+        const selected = country.value;
+        const matches = countryOptions.filter(option => option.value === '' || option.value === selected || option.text.toLocaleLowerCase().includes(query));
+        country.replaceChildren(...matches.map(option => option.cloneNode(true)));
+        country.value = selected;
+    });
+}
+
+const locationMap = document.querySelector('[data-location-map]');
+locationMap?.addEventListener('toggle', () => {
+    if (!locationMap.open) return;
+    const frame = locationMap.querySelector('iframe[data-src]');
+    if (!frame.hasAttribute('src')) frame.src = frame.dataset.src;
+});
+
+const heroCarousel = document.querySelector('[data-hero-carousel]');
+if (heroCarousel) {
+    const slides = [...heroCarousel.querySelectorAll('[data-hero-slide]')];
+    const selectors = [...heroCarousel.querySelectorAll('[data-hero-select]')];
+    const controls = heroCarousel.querySelector('[data-hero-controls]');
+    const status = heroCarousel.querySelector('[data-hero-status]');
+    let current = 0;
+    let touchStart = null;
+
+    const showSlide = index => {
+        const next = (index + slides.length) % slides.length;
+        if (next === current) return;
+
+        current = next;
+        slides.forEach((slide, position) => {
+            const active = current === position;
+            slide.setAttribute('aria-hidden', String(!active));
+            slide.inert = !active;
+            selectors[position].setAttribute('aria-pressed', String(active));
+        });
+        status.textContent = selectors[current].textContent.trim();
+    };
+
+    selectors.forEach((button, index) => button.addEventListener('click', () => showSlide(index)));
+    heroCarousel.querySelector('[data-hero-previous]').addEventListener('click', () => showSlide(current - 1));
+    heroCarousel.querySelector('[data-hero-next]').addEventListener('click', () => showSlide(current + 1));
+    controls.addEventListener('keydown', event => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        const fromSelector = selectors.includes(event.target);
+        showSlide(current + (event.key === 'ArrowRight' ? 1 : -1));
+        if (fromSelector) selectors[current].focus();
+    });
+
+    const stage = heroCarousel.querySelector('.home-hero-stage');
+    stage.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'touch') touchStart = { x: event.clientX, y: event.clientY };
+    });
+    stage.addEventListener('pointercancel', () => { touchStart = null; });
+    stage.addEventListener('pointerup', event => {
+        if (event.pointerType !== 'touch' || !touchStart) return;
+        const horizontal = event.clientX - touchStart.x;
+        const vertical = event.clientY - touchStart.y;
+        touchStart = null;
+        if (Math.abs(horizontal) > 55 && Math.abs(horizontal) > Math.abs(vertical) * 1.5) {
+            showSlide(current + (horizontal < 0 ? 1 : -1));
+        }
+    });
+
+    controls.hidden = false;
+}
+
+const testimonialSlider = document.querySelector('[data-testimonial-slider]');
+const testimonialControls = testimonialSlider?.querySelector('[data-testimonial-controls]');
+if (testimonialControls) {
+    const track = testimonialSlider.querySelector('[data-testimonial-track]');
+    const slides = [...track.children];
+    const counter = testimonialControls.querySelector('[data-testimonial-index]');
+    const slideOffset = slide => slide.offsetLeft - slides[0].offsetLeft;
+    const positions = () => {
+        const lastOffset = track.scrollWidth - track.clientWidth;
+        return slides.filter(slide => slideOffset(slide) <= lastOffset + 1);
+    };
+
+    const closestPosition = available => available.reduce((closest, slide) =>
+        Math.abs(track.scrollLeft - slideOffset(slide)) < Math.abs(track.scrollLeft - slideOffset(closest))
+            ? slide
+            : closest,
+    );
+
+    const updateCounter = () => {
+        const available = positions();
+        const first = closestPosition(available);
+        const start = slides.indexOf(first) + 1;
+        const edge = slideOffset(first) + track.clientWidth + 1;
+        const end = slides.filter(slide => slideOffset(slide) + slide.offsetWidth <= edge).length;
+        const label = start === end ? `${start} / ${slides.length}` : `${start}–${end} / ${slides.length}`;
+        if (counter.textContent.trim() !== label) counter.textContent = label;
+        testimonialControls.hidden = available.length < 2;
+    };
+
+    const move = direction => {
+        const available = positions();
+        const current = available.indexOf(closestPosition(available));
+        const target = (current + direction + available.length) % available.length;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        track.scrollTo({ left: slideOffset(available[target]), behavior: reduceMotion ? 'instant' : 'smooth' });
+    };
+
+    testimonialControls.querySelector('[data-testimonial-prev]').addEventListener('click', () => move(-1));
+    testimonialControls.querySelector('[data-testimonial-next]').addEventListener('click', () => move(1));
+    track.addEventListener('scroll', updateCounter, { passive: true });
+    track.addEventListener('keydown', event => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            move(event.key === 'ArrowRight' ? 1 : -1);
+        }
+    });
+    testimonialSlider.setAttribute('data-testimonial-enhanced', '');
+    new ResizeObserver(updateCounter).observe(track);
+    updateCounter();
+}

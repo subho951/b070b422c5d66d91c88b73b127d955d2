@@ -52,7 +52,7 @@ class FeaturedProjectSeeder extends Seeder
             }
             DB::table('pages')->where('slug', 'portfolio')->update([
                 'title' => 'Projects built around real needs.',
-                'description' => 'Explore our work on ALFA Network and E School, from member networking to school administration.',
+                'description' => config('portfolio-catalog.intro_description'),
                 'eyebrow' => 'SELECTED PROJECTS', 'updated_at' => now(),
             ]);
             DB::table('site_settings')->insert(['key' => 'content.featured_projects_version', 'group' => 'content', 'value' => '2026-11-17.1', 'created_at' => now(), 'updated_at' => now()]);

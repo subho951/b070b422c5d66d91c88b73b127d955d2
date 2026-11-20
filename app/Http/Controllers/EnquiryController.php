@@ -14,6 +14,9 @@ class EnquiryController extends Controller
     {
         $data = $request->safe()->except('website');
         $data['privacy_consent'] = true;
+        foreach (['company', 'country', 'project_type'] as $optionalField) {
+            $data[$optionalField] ??= '';
+        }
         $data['budget_currency'] = ContactOptions::currency($data['country']);
         if (! empty($data['budget'])) {
             $data['budget'] = ContactOptions::budgets($data['country'])[$data['budget']];
@@ -21,6 +24,6 @@ class EnquiryController extends Controller
         Enquiry::create($data);
         app(CommunicationSettings::class)->notifyEnquiry();
 
-        return redirect()->route('contact')->with('success', 'Thank you. Your project enquiry has been received. Our team will be in touch.');
+        return redirect()->route('contact.thanks')->with('success', 'Thank you. Your project enquiry has been received. Our team will be in touch.');
     }
 }

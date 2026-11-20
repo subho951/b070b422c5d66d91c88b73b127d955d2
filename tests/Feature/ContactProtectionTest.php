@@ -39,24 +39,37 @@ class ContactProtectionTest extends TestCase
         return array_merge(['success' => true, 'score' => 0.9, 'action' => 'contact', 'hostname' => 'localhost', 'challenge_ts' => now()->toIso8601String()], $overrides);
     }
 
-    public function test_contact_form_has_country_options_required_phone_and_local_currency_ranges(): void
+    public function test_contact_form_has_country_options_optional_phone_and_local_currency_ranges(): void
     {
         $this->get('/contact')->assertOk()->assertSee('Select your country')->assertSee('data-currency="INR"', false)->assertSee('data-currency="GBP"', false)->assertSee('name="phone"', false)->assertSee('data-budget-ranges', false);
-        $this->from('/contact')->post('/contact', $this->enquiry(['phone' => '']))->assertSessionHasErrors('phone');
+        $this->get('/contact?intent=quote&service=custom-software')
+            ->assertSee('value="quote" selected', false)->assertSee('value="custom-software" selected', false);
+        $this->post('/contact', $this->enquiry(['phone' => '', 'intent' => 'quote']))->assertRedirect('/contact/thank-you');
+        $this->assertDatabaseHas('enquiries', ['phone' => null, 'intent' => 'quote']);
+    }
+
+    public function test_quick_enquiry_accepts_minimum_fields_and_quotes_require_a_service(): void
+    {
+        $data = ['name' => 'Avery Smith', 'email' => 'avery@example.com', 'description' => 'Please help us plan an internal tool.', 'privacy_consent' => true];
+        $this->from('/contact')->post('/contact', $data + ['intent' => 'quote'])->assertSessionHasErrors('project_type');
         $this->assertDatabaseCount('enquiries', 0);
+        $this->post('/contact', $data)->assertRedirect('/contact/thank-you');
+        $this->get('/contact/thank-you')->assertOk()->assertSee('Your enquiry has been received')
+            ->assertSee('name="robots" content="noindex, follow"', false);
+        $this->assertDatabaseHas('enquiries', ['email' => 'avery@example.com', 'project_type' => '', 'company' => '', 'budget_currency' => null]);
     }
 
     public function test_budget_currency_is_derived_from_country_and_not_client_input(): void
     {
         foreach (['India' => 'INR', 'United Kingdom' => 'GBP', 'United States' => 'USD', 'Germany' => 'EUR', 'Kuwait' => 'KWD'] as $country => $currency) {
-            $this->post('/contact', $this->enquiry(['country' => $country, 'budget_currency' => 'XXX']))->assertRedirect('/contact');
+            $this->post('/contact', $this->enquiry(['country' => $country, 'budget_currency' => 'XXX']))->assertRedirect('/contact/thank-you');
             $this->assertDatabaseHas('enquiries', ['country' => $country, 'budget_currency' => $currency, 'budget' => $currency.' - 5,000 to 15,000']);
         }
     }
 
     public function test_invalid_countries_phones_and_ranges_are_rejected_and_array_country_can_be_redisplayed(): void
     {
-        foreach ([['country' => 'Atlantis'], ['phone' => 'not a phone'], ['budget' => 'USD - Under 5,000'], ['country' => ['India']]] as $invalid) {
+        foreach ([['country' => 'Atlantis'], ['phone' => 'not a phone'], ['budget' => 'USD - Under 5,000'], ['country' => ['India']], ['intent' => 'invalid']] as $invalid) {
             $this->from('/contact')->post('/contact', $this->enquiry($invalid))->assertSessionHasErrors(array_key_first($invalid));
         }
         $this->get('/contact')->assertOk();
@@ -65,7 +78,7 @@ class ContactProtectionTest extends TestCase
 
     public function test_budget_is_optional_and_currency_is_still_saved(): void
     {
-        $this->post('/contact', $this->enquiry(['budget' => null]))->assertRedirect('/contact');
+        $this->post('/contact', $this->enquiry(['budget' => null]))->assertRedirect('/contact/thank-you');
         $this->assertDatabaseHas('enquiries', ['budget' => null, 'budget_currency' => 'INR']);
     }
 
@@ -81,7 +94,7 @@ class ContactProtectionTest extends TestCase
     {
         $this->enableRecaptcha();
         Http::fake(['www.google.com/recaptcha/api/siteverify' => Http::response($this->verdict())]);
-        $this->post('/contact', $this->enquiry(['g-recaptcha-response' => 'a-fresh-token']))->assertRedirect('/contact')->assertSessionHasNoErrors();
+        $this->post('/contact', $this->enquiry(['g-recaptcha-response' => 'a-fresh-token']))->assertRedirect('/contact/thank-you')->assertSessionHasNoErrors();
         Http::assertSent(fn ($request): bool => $request['secret'] === 'test-secret' && $request['response'] === 'a-fresh-token');
         $this->assertDatabaseCount('enquiries', 1);
     }
@@ -149,7 +162,7 @@ class ContactProtectionTest extends TestCase
 
     public function test_contact_validation_errors_and_password_toggle_render_without_repopulating_password(): void
     {
-        $this->from('/contact')->post('/contact', $this->enquiry(['phone' => '']))->assertSessionHasErrors('phone');
+        $this->from('/contact')->post('/contact', $this->enquiry(['phone' => 'invalid']))->assertSessionHasErrors('phone');
         $this->get('/contact')->assertOk();
         $this->withViewErrors(['phone' => 'A phone number is required.'])
             ->blade('<x-field name="phone" label="Phone number" type="tel" :required="true"/>')

@@ -11,7 +11,7 @@ class PortfolioContentSeeder extends Seeder
     {
         DB::transaction(function (): void {
             foreach (config('portfolio-content') as $slug => $copy) {
-                $record = DB::table('portfolio_projects')->where('slug', $slug)->whereNull('deleted_at')->first();
+                $record = DB::table('portfolio_projects')->whereIn('slug', [$slug, config('portfolio-catalog.legacy')[$slug][0]])->whereNull('deleted_at')->first();
                 if (! $record) {
                     continue;
                 }

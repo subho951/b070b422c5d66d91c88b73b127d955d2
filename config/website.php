@@ -1,10 +1,14 @@
 <?php
 
 $website = [
+    'home_page' => [
+        'title' => 'Custom Software, Web Applications & Business Automation',
+        'description' => 'Build custom software, web apps and automated workflows with an engineering team in Howrah. We work with businesses in India and internationally.',
+    ],
     'branding' => [
         'site_name' => 'Howvanta Technologies',
         'tagline' => 'Engineering What\'s Next.',
-        'header_button_label' => 'Let\'s talk',
+        'header_button_label' => 'Start a Project',
         'header_button_url' => '/contact',
         'menu_label' => 'Menu',
         'footer_location_note' => 'Building for businesses worldwide.',
@@ -14,13 +18,14 @@ $website = [
         'footer_contact_label' => 'Let\'s build what\'s next.',
         'footer_contact_url' => '/contact',
         'copyright' => 'Howvanta Technologies. All rights reserved.',
-        'service_button_label' => 'Discuss your requirements',
+        'service_button_label' => 'Request a Quote',
         'service_back_label' => 'All services',
         'service_eyebrow' => 'HOWVANTA / ENGINEERING CAPABILITIES',
         'project_back_label' => 'All work',
         'portfolio_concept_stamp' => 'CONCEPT EXPLORATION',
         'portfolio_project_stamp' => 'SELECTED PROJECT',
         'portfolio_demo_label' => 'DEMONSTRATION',
+        'portfolio_case_study_label' => 'View Case Study',
         'service_explore_label' => 'Explore service',
     ],
     'sections' => [
@@ -86,13 +91,13 @@ $website = [
                     'label' => 'Items',
                     'type' => 'items',
                     'default' => [[
-                        'title' => 'Let\'s build what\'s next',
+                        'title' => 'Start a Project',
                         'text' => '',
-                        'url' => '/contact',
+                        'url' => '/contact#enquiry',
                     ], [
-                        'title' => 'Explore services',
+                        'title' => 'View Our Work',
                         'text' => '',
-                        'url' => '/services',
+                        'url' => '/portfolio',
                     ]],
                 ],
                 'image_id' => [
@@ -145,9 +150,9 @@ $website = [
             ],
         ],
         'home.expertise' => [
-            'label' => 'Expertise',
+            'label' => 'Homepage service groups',
             'scope' => 'home',
-            'variant' => 'services',
+            'variant' => 'cards',
             'fields' => [
                 'eyebrow' => [
                     'label' => 'Eyebrow',
@@ -157,69 +162,23 @@ $website = [
                 'title' => [
                     'label' => 'Title',
                     'type' => 'text',
-                    'default' => 'Real challenges.
-Practical solutions.',
+                    'default' => 'How we can help',
                 ],
                 'description' => [
                     'label' => 'Description',
                     'type' => 'textarea',
-                    'default' => 'One partner across your product\'s lifecycle. The right technology, chosen for the problem you need to solve.',
+                    'default' => 'From improving an internal process to building a customer-facing app, we can help you plan, build and support it.',
                 ],
-                'image_id' => [
-                    'label' => 'Image id',
-                    'type' => 'image',
-                    'default' => null,
-                ],
-            ],
-        ],
-        'home.why' => [
-            'label' => 'Why Howvanta',
-            'scope' => 'home',
-            'variant' => 'principles',
-            'fields' => [
-                'eyebrow' => [
-                    'label' => 'Eyebrow',
-                    'type' => 'text',
-                    'default' => 'WHY HOWVANTA',
-                ],
-                'title' => [
-                    'label' => 'Title',
-                    'type' => 'text',
-                    'default' => 'Clear thinking.
-Considered craft.
-Lasting partnership.',
-                ],
-                'description' => [
-                    'label' => 'Description',
-                    'type' => 'textarea',
-                    'default' => 'Good software starts with understanding your business. We combine the clarity of a consultant with the craft of an engineering team.',
-                ],
-                'button_label' => [
-                    'label' => 'Button label',
-                    'type' => 'text',
-                    'default' => 'Meet Howvanta',
-                ],
-                'button_url' => [
-                    'label' => 'Button url',
-                    'type' => 'link',
-                    'default' => '/about',
-                ],
+                'button_label' => ['label' => 'Button label', 'type' => 'text', 'default' => 'Explore all services'],
+                'button_url' => ['label' => 'Button URL', 'type' => 'link', 'default' => '/services'],
                 'items' => [
-                    'label' => 'Items',
+                    'label' => 'Service groups',
                     'type' => 'items',
-                    'default' => [[
-                        'title' => 'Your goals come first',
-                        'text' => 'We listen before we build. Your users, workflows and ambitions shape the solution.',
-                        'url' => '',
-                    ], [
-                        'title' => 'Progress you can see',
-                        'text' => 'Clear milestones, regular demonstrations and decisions explained in plain language.',
-                        'url' => '',
-                    ], [
-                        'title' => 'Built for what comes after',
-                        'text' => 'Maintainable code, thoughtful architecture and support beyond the first release.',
-                        'url' => '',
-                    ]],
+                    'default' => [
+                        ['title' => 'Custom Business Software', 'text' => 'Replace spreadsheets and disconnected tools with software for managing records, approvals and everyday workflows.', 'url' => ''],
+                        ['title' => 'Web & Application Development', 'text' => 'Build business websites, customer portals and web or mobile applications around how your customers and teams work.', 'url' => ''],
+                        ['title' => 'Maintenance & Support', 'text' => 'Keep your software working after launch with bug fixes, updates and ongoing technical support.', 'url' => ''],
+                    ],
                 ],
                 'image_id' => [
                     'label' => 'Image id',
@@ -258,6 +217,60 @@ built for our clients.',
                     'label' => 'Button url',
                     'type' => 'link',
                     'default' => '/portfolio',
+                ],
+                'image_id' => [
+                    'label' => 'Image id',
+                    'type' => 'image',
+                    'default' => null,
+                ],
+            ],
+        ],
+        'home.why' => [
+            'label' => 'Why Howvanta',
+            'scope' => 'home',
+            'variant' => 'principles',
+            'fields' => [
+                'eyebrow' => [
+                    'label' => 'Eyebrow',
+                    'type' => 'text',
+                    'default' => 'WHY HOWVANTA',
+                ],
+                'title' => [
+                    'label' => 'Title',
+                    'type' => 'text',
+                    'default' => 'A clear plan from discovery to support',
+                ],
+                'description' => [
+                    'label' => 'Description',
+                    'type' => 'textarea',
+                    'default' => 'We start by understanding how your team works, agree on what to build and show you progress as the software takes shape.',
+                ],
+                'button_label' => [
+                    'label' => 'Button label',
+                    'type' => 'text',
+                    'default' => 'Meet Howvanta',
+                ],
+                'button_url' => [
+                    'label' => 'Button url',
+                    'type' => 'link',
+                    'default' => '/about',
+                ],
+                'items' => [
+                    'label' => 'Items',
+                    'type' => 'items',
+                    'default' => [[
+                        'title' => 'Your goals come first',
+                        'text' => 'We listen before we build. Your users, workflows and ambitions shape the solution.',
+                        'url' => '',
+                    ], [
+                        'title' => 'Progress you can see',
+                        'text' => 'Clear milestones, regular demonstrations and decisions explained in plain language.',
+                        'url' => '',
+                    ], [
+                        'title' => 'Built for what comes after',
+                        'text' => 'Maintainable code, thoughtful architecture and support beyond the first release.',
+                        'url' => '',
+                    ]],
                 ],
                 'image_id' => [
                     'label' => 'Image id',
@@ -430,7 +443,7 @@ starts with a conversation.',
                 'button_label' => [
                     'label' => 'Button label',
                     'type' => 'text',
-                    'default' => 'Tell us what you have in mind',
+                    'default' => 'Start a Project',
                 ],
                 'button_url' => [
                     'label' => 'Button url',
@@ -513,7 +526,7 @@ with a hello.',
                 'phone_label' => [
                     'label' => 'Phone label',
                     'type' => 'text',
-                    'default' => 'CALL / WHATSAPP',
+                    'default' => 'CALL',
                 ],
                 'note' => [
                     'label' => 'Note',
@@ -645,6 +658,10 @@ with a conversation.',
                         'title' => 'Testimonials',
                         'text' => '',
                         'url' => '/testimonials',
+                    ], [
+                        'title' => 'How we work',
+                        'text' => '',
+                        'url' => '/engagement',
                     ]],
                 ],
                 'image_id' => [

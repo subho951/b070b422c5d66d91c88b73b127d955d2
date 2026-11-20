@@ -17,17 +17,23 @@ class AppServiceProvider extends ServiceProvider
     {
         View::composer('*', fn (\Illuminate\View\View $view) => $view->with('website', new WebsiteContent));
         Gate::define('access-admin', fn (User $user) => $user->role === 'administrator');
-        View::composer(['components.layout', 'components.services', 'components.projects', 'testimonials', 'maintenance'], function (\Illuminate\View\View $view): void {
+        View::composer(['testimonials', 'components.testimonial-slider'], function (\Illuminate\View\View $view): void {
+            $query = DB::table('testimonials')->whereNull('deleted_at')->where('status', 'published')
+                ->where('published_at', '<=', now())->where('consent_confirmed', true);
+            if ($view->name() === 'components.testimonial-slider') {
+                $query->where('show_on_homepage', true);
+            }
+
+            $view->with('websiteTestimonials', $query->orderBy('sort_order')->orderBy('id')->get());
+        });
+        View::composer(['components.layout', 'components.services', 'components.projects', 'maintenance'], function (\Illuminate\View\View $view): void {
             $view->with('siteSettings', DB::table('site_settings')->where('type', '!=', 'encrypted')->pluck('value', 'key'));
-            foreach (['websiteServices' => 'services', 'websiteProjects' => 'portfolio_projects', 'websiteTestimonials' => 'testimonials'] as $name => $table) {
+            foreach (['websiteServices' => 'services', 'websiteProjects' => 'portfolio_projects'] as $name => $table) {
                 $query = DB::table($table)->whereNull('deleted_at')->where('status', 'published')->where('published_at', '<=', now());
                 if ($table === 'portfolio_projects') {
                     $query->orderByDesc('is_exclusive');
                 }
                 $query->orderBy('sort_order')->orderBy('id');
-                if ($table === 'testimonials') {
-                    $query->where('consent_confirmed', true);
-                }
                 $view->with($name, $query->get());
             }
         });

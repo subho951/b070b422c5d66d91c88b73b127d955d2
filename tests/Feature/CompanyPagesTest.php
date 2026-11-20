@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\ClientTestimonialsSeeder;
 use Database\Seeders\CompanyPageContentSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -21,7 +21,6 @@ class CompanyPagesTest extends TestCase
         $this->withoutVite();
         $this->seed(WebsiteSeeder::class);
         $this->seed(CompanyPageContentSeeder::class);
-        config(['services.google_reviews.enabled' => false, 'services.google_reviews.api_key' => null, 'services.google_reviews.place_id' => null]);
         Http::preventStrayRequests();
     }
 
@@ -32,25 +31,6 @@ class CompanyPagesTest extends TestCase
         $user->save();
 
         return $user;
-    }
-
-    private function enableReviews(): void
-    {
-        config(['services.google_reviews.enabled' => true, 'services.google_reviews.api_key' => 'private-google-key', 'services.google_reviews.place_id' => 'ChIJHowvantaTestBusiness']);
-    }
-
-    /** @return array<string, mixed> */
-    private function googleResponse(): array
-    {
-        return [
-            'id' => 'ChIJHowvantaTestBusiness', 'rating' => 4.3, 'userRatingCount' => 12,
-            'googleMapsLinks' => ['reviewsUri' => 'https://www.google.com/maps/reviews/business', 'writeAReviewUri' => 'https://www.google.com/maps/reviews/write'],
-            'reviews' => [
-                ['rating' => 4, 'text' => ['text' => 'Translated review'], 'originalText' => ['text' => 'Clear communication and a useful delivery process.'], 'authorAttribution' => ['displayName' => 'Example Reviewer', 'uri' => 'https://www.google.com/maps/contrib/123', 'photoUri' => 'https://lh3.googleusercontent.com/example-avatar'], 'googleMapsUri' => 'https://www.google.com/maps/reviews/original-123', 'relativePublishTimeDescription' => 'a month ago'],
-                ['rating' => 2, 'text' => ['text' => '<script>alert(1)</script>'], 'authorAttribution' => ['displayName' => 'Another Reviewer', 'uri' => 'javascript:alert(1)', 'photoUri' => 'https://untrusted.example/avatar'], 'googleMapsUri' => 'https://www.google.com/maps/reviews/original-456'],
-            ],
-            'attributions' => [['provider' => 'Example attribution', 'providerUri' => 'https://example.com/attribution']],
-        ];
     }
 
     public function test_about_privacy_and_terms_have_broad_editable_content_and_legal_navigation(): void
@@ -84,60 +64,37 @@ class CompanyPagesTest extends TestCase
         $this->assertDatabaseCount('website_sections', $sectionCount);
     }
 
-    public function test_profile_links_work_without_credentials_and_no_rating_or_review_is_invented(): void
+    public function test_client_reviews_are_imported_once_and_only_approved_records_are_public(): void
     {
-        $this->get('/testimonials')->assertOk()->assertSee('Read our reviews on Google.')->assertSee(config('services.google_reviews.profile_url'))->assertSee('Write a Google review')->assertDontSee('class="google-rating"', false)->assertDontSee('google-review-card', false);
-        Http::assertNothingSent();
-        $this->assertDatabaseCount('testimonials', 0);
-    }
+        $this->seed(ClientTestimonialsSeeder::class);
+        $this->seed(ClientTestimonialsSeeder::class);
+        $this->assertDatabaseCount('testimonials', 13);
+        $this->assertSame(4, DB::table('testimonials')->where('status', 'published')->where('consent_confirmed', true)->count());
+        $this->assertSame(9, DB::table('testimonials')->where('status', 'draft')->where('consent_confirmed', false)->whereNull('rating')->count());
 
-    public function test_google_reviews_use_the_api_with_attributions_original_text_and_no_positive_only_filter(): void
-    {
-        $this->enableReviews();
-        Http::fake(['places.googleapis.com/*' => Http::response($this->googleResponse())]);
-        $this->get('/testimonials')->assertOk()->assertSee('4.3')->assertSee('12 Google reviews')->assertSee('Example Reviewer')->assertSee('Another Reviewer')->assertSee('Clear communication and a useful delivery process.')->assertDontSee('Translated review')->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)->assertDontSee('<script>alert(1)</script>', false)->assertDontSee('javascript:alert(1)', false)->assertDontSee('https://untrusted.example/avatar')->assertSee('https://www.google.com/maps/reviews/original-123')->assertSee('Google Maps')->assertSee('ordered by relevance')->assertSee('Example attribution')->assertDontSee('private-google-key');
-        Http::assertSent(fn ($request): bool => $request->url() === 'https://places.googleapis.com/v1/places/ChIJHowvantaTestBusiness?languageCode=en' && $request->hasHeader('X-Goog-Api-Key', 'private-google-key') && str_contains($request->header('X-Goog-FieldMask')[0], 'reviews'));
-        $this->get('/testimonials')->assertOk();
-        Http::assertSentCount(2);
-        $this->assertDatabaseCount('testimonials', 0);
-    }
-
-    public function test_provider_errors_invalid_responses_and_timeouts_keep_the_profile_links_available(): void
-    {
-        $this->enableReviews();
-        Http::fakeSequence('places.googleapis.com/*')->push(['error' => 'provider-secret-error'], 403)->pushFailedConnection()->push('invalid-json')->push(['id' => 'different-business', 'rating' => 5, 'userRatingCount' => 20]);
-        for ($attempt = 0; $attempt < 4; $attempt++) {
-            $this->get('/testimonials')->assertOk()->assertSee('Read reviews on Google')->assertDontSee('provider-secret-error')->assertDontSee('private-google-key')->assertDontSee('class="google-rating"', false);
+        foreach (['/testimonials', '/'] as $url) {
+            $this->get($url)->assertOk()->assertSee('Das Tours and Travels')->assertSee('Whiteboard Consultant')
+                ->assertSee('Tilottoma Parlour')->assertSee('Hooghly TV')->assertSee('5 out of 5 stars')
+                ->assertDontSee('Genius Medical Educare Foundation')->assertDontSee('Write a Google review');
         }
-    }
-
-    public function test_google_review_settings_encrypt_credentials_preserve_blank_keys_and_do_not_fetch_on_save(): void
-    {
-        $this->actingAs($this->administrator());
-        $data = ['enabled' => 1, 'profile_url' => 'https://www.google.com/maps?cid=123', 'review_url' => 'https://g.page/r/business/review', 'place_id' => 'ChIJHowvantaTestBusiness', 'google_api_key' => 'encrypted-places-key'];
-        $this->put(route('admin.settings.reviews'), $data)->assertRedirect(route('admin.settings', ['tab' => 'reviews']))->assertSessionHasNoErrors();
-        $stored = DB::table('site_settings')->where('key', 'google_reviews.api_key')->first();
-        $this->assertSame('encrypted', $stored->type);
-        $this->assertSame('encrypted-places-key', Crypt::decryptString($stored->value));
-        $this->get(route('admin.settings', ['tab' => 'reviews']))->assertOk()->assertSee('A key is configured.')->assertDontSee('encrypted-places-key');
-        $this->put(route('admin.settings.reviews'), array_replace($data, ['google_api_key' => '']))->assertSessionHasNoErrors();
-        $this->assertSame($stored->value, DB::table('site_settings')->where('key', 'google_reviews.api_key')->value('value'));
+        $this->get('/privacy')->assertDontSee('automatic reviews');
+        $this->get('/terms')->assertDontSee('Testimonials and Google reviews');
         Http::assertNothingSent();
     }
 
-    public function test_review_settings_validate_credentials_and_google_links_without_flashing_the_secret(): void
+    public function test_administrator_can_edit_rating_and_choose_slider_visibility(): void
     {
-        $this->actingAs($this->administrator());
-        $this->put(route('admin.settings.reviews'), ['enabled' => 1, 'profile_url' => 'https://www.google.com/maps?cid=123'])->assertSessionHasErrors(['place_id', 'google_api_key']);
-        $this->put(route('admin.settings.reviews'), ['enabled' => 0, 'profile_url' => 'https://example.com/fake-google', 'google_api_key' => 'do-not-flash-this-key'])->assertSessionHasErrors('profile_url');
-        $this->assertArrayNotHasKey('google_api_key', session()->getOldInput());
-        $this->assertDatabaseMissing('site_settings', ['key' => 'google_reviews.api_key']);
-    }
-
-    public function test_guests_and_nonadministrators_cannot_change_the_google_review_connection(): void
-    {
-        $this->put(route('admin.settings.reviews'), [])->assertRedirect(route('login'));
-        $this->actingAs(User::factory()->create())->put(route('admin.settings.reviews'), [])->assertForbidden();
-        $this->assertDatabaseMissing('site_settings', ['key' => 'google_reviews.enabled']);
+        $this->seed(ClientTestimonialsSeeder::class);
+        $record = DB::table('testimonials')->where('source_key', 'das-tours-travels-2026')->first();
+        $url = route('admin.content.update', ['testimonials', $record->id]);
+        $data = ['title' => $record->title, 'name' => $record->name, 'description' => $record->description,
+            'consent_confirmed' => true, 'status' => 'published', 'sort_order' => 10, 'rating' => 5,
+            'reviewed_on' => '2026-11-13', 'show_on_homepage' => false];
+        $this->actingAs($this->administrator())->put($url, array_replace($data, ['rating' => 6]))
+            ->assertSessionHasErrors('rating');
+        $this->put($url, $data)->assertSessionHasNoErrors();
+        $this->get('/testimonials')->assertSee('Das Tours and Travels');
+        $this->get('/')->assertDontSee('Das Tours and Travels');
+        $this->get('/admin/settings')->assertDontSee('Google reviews');
     }
 }

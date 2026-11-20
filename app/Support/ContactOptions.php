@@ -4,6 +4,12 @@ namespace App\Support;
 
 class ContactOptions
 {
+    public const Intents = [
+        'consultation' => 'Request a Consultation',
+        'quote' => 'Request a Quote',
+        'support' => 'Ask About Support',
+    ];
+
     public static function currency(?string $country): ?string
     {
         return config('countries')[$country ?? ''] ?? null;

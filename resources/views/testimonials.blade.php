@@ -1,1 +1,27 @@
-<x-layout :title="$pageContent->title" :description="$pageContent->description"><x-page-intro :page-content="$pageContent" label="OUR PARTNERSHIPS"/><x-google-reviews :reviews="$googleReviews"/><section class="section testimonial-feedback-section"><div class="container"><div class="testimonial-grid">@forelse($websiteTestimonials as $testimonial)<article class="quote-card"><span class="quote-mark" aria-hidden="true">&ldquo;</span><h2>{{ $testimonial->title }}</h2><blockquote>{{ $testimonial->description }}</blockquote><div class="quote-person">@if($testimonial->featured_image_id)<x-media-image :id="$testimonial->featured_image_id" image-class="testimonial-photo"/>@else<span class="person-avatar" aria-hidden="true">{{ mb_substr($testimonial->name, 0, 1) }}</span>@endif<div><strong>{{ $testimonial->name }}</strong><p>{{ $testimonial->company }}</p></div></div></article>@empty @php($emptyState = $website->section('testimonials.empty')) @if($emptyState['_visible'])<div class="testimonial-empty"><span class="eyebrow">{{ $emptyState['eyebrow'] }}</span><h2 class="multiline-heading">{{ $emptyState['title'] }}</h2><p>{{ $emptyState['description'] }}</p><x-media-image :id="$emptyState['image_id']" image-class="section-image"/><a class="button" href="{{ $website->url($emptyState['button_url']) }}">{{ $emptyState['button_label'] }} &nearr;</a></div>@endif @endforelse</div></div></section><x-cta/></x-layout>
+<x-layout :title="$pageContent->title" :description="$pageContent->description">
+    <x-page-intro :page-content="$pageContent" label="CLIENT FEEDBACK" class="testimonials-intro"/>
+    <section class="section testimonial-feedback-section" aria-labelledby="client-feedback-title">
+        <div class="container">
+            @if($websiteTestimonials->isNotEmpty())
+                <h2 class="sr-only" id="client-feedback-title">What our clients say</h2>
+                <div class="testimonial-grid">
+                    @foreach($websiteTestimonials as $testimonial)
+                        <x-testimonial-card :testimonial="$testimonial"/>
+                    @endforeach
+                </div>
+            @else
+                @php($emptyState = $website->section('testimonials.empty'))
+                @if($emptyState['_visible'])
+                    <div class="testimonial-empty">
+                        <span class="eyebrow">{{ $emptyState['eyebrow'] }}</span>
+                        <h2 class="multiline-heading" id="client-feedback-title">{{ $emptyState['title'] }}</h2>
+                        <p>{{ $emptyState['description'] }}</p>
+                        <x-media-image :id="$emptyState['image_id']" image-class="section-image"/>
+                        <a class="button" href="{{ $website->url($emptyState['button_url']) }}">{{ $emptyState['button_label'] }}</a>
+                    </div>
+                @endif
+            @endif
+        </div>
+    </section>
+    <x-cta/>
+</x-layout>

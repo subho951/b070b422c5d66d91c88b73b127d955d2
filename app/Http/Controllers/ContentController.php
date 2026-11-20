@@ -134,6 +134,10 @@ class ContentController extends Controller
         if ($section === 'testimonials') {
             $rules['name'] = ['required', 'string', 'max:255'];
             $rules['company'] = ['nullable', 'string', 'max:255'];
+            $rules['service_label'] = ['nullable', 'string', 'max:255'];
+            $rules['rating'] = ['nullable', 'integer', 'between:1,5'];
+            $rules['reviewed_on'] = ['nullable', 'date_format:Y-m-d'];
+            $rules['show_on_homepage'] = ['sometimes', 'boolean'];
             $rules['consent_confirmed'] = $request->input('status') === 'published' ? ['accepted'] : ['nullable', 'boolean'];
         } else {
             $rules['slug'] = $section === 'pages' ? ['prohibited'] : ['required', 'string', 'max:180', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique($definition['table'], 'slug')->ignore($id)];
@@ -182,11 +186,28 @@ class ContentController extends Controller
 
     public function enquiry(Request $request, Enquiry $enquiry): RedirectResponse
     {
-        $data = $request->validate(['status' => ['required', Rule::in(['new', 'contacted', 'qualified', 'converted', 'closed'])]]);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['new', 'contacted', 'qualified', 'converted', 'closed'])],
+            'assigned_to' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('role', 'administrator')],
+            'consultation_booked' => ['sometimes', 'boolean'],
+            'proposal_sent' => ['sometimes', 'boolean'],
+        ]);
         $enquiry->status = $data['status'];
+        if (array_key_exists('assigned_to', $data)) {
+            $enquiry->assigned_to = $data['assigned_to'];
+        }
+        if (in_array($data['status'], ['qualified', 'converted'], true) && $enquiry->qualified_at === null) {
+            $enquiry->qualified_at = now();
+        }
+        foreach (['consultation_booked', 'proposal_sent'] as $outcome) {
+            if (array_key_exists($outcome, $data)) {
+                $field = $outcome.'_at';
+                $enquiry->$field = $data[$outcome] ? ($enquiry->$field ?? now()) : null;
+            }
+        }
         $enquiry->save();
 
-        return back()->with('success', 'Enquiry status updated.');
+        return back()->with('success', 'Enquiry updated.');
     }
 
     public function saveSettings(Request $request): RedirectResponse

@@ -8,6 +8,7 @@ use Database\Seeders\FeaturedProjectSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class WebsiteTest extends TestCase
@@ -34,6 +35,13 @@ class WebsiteTest extends TestCase
         foreach (array_keys(config('howvanta.services')) as $slug) {
             $this->get('/services/'.$slug)->assertOk();
         }
+        $this->get('/subhomoy-samanta')->assertOk()
+            ->assertSee('Subhomoy Samanta')->assertSee('15+ years')
+            ->assertSee(route('portfolio.show', 'alfa-network'))
+            ->assertSee(route('portfolio.show', 'e-school'))
+            ->assertSee(route('contact', ['intent' => 'consultation']).'#enquiry');
+        $this->get('/about')->assertSee(route('founder'));
+        $this->get('/sitemap.xml')->assertSee(route('founder'));
         $this->get('/missing')->assertNotFound()->assertSee('back on track');
         $this->get('/services/unknown')->assertNotFound();
         $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml')->assertSee('/services/custom-software');
@@ -92,9 +100,14 @@ class WebsiteTest extends TestCase
             ->assertSee(config('featured-projects.alfa-network.alt'))->assertSee(config('featured-projects.e-school.alt'))
             ->assertDontSee('A connected operations platform')->assertDontSee('Knowledge, made accessible')
             ->assertDontSee('demonstration concepts');
+        $portfolio = $this->get('/portfolio')->assertOk()->assertSee('View Case Study');
         foreach (config('featured-projects') as $slug => $project) {
+            $portfolio->assertSee(route('portfolio.show', $slug))
+                ->assertSee($project['category'])->assertSee($project['description']);
             $this->get('/portfolio/'.$slug)->assertOk()->assertSee($project['url'], false)
-                ->assertSee($project['title'])->assertSee($project['challenge'])
+                ->assertSee($project['alt'])->assertSee($project['title'])
+                ->assertSeeInOrder([$project['challenge'], 'Howvanta’s role', $project['content'], $project['solution'], $project['outcome'], 'Discuss a Similar Project'])
+                ->assertSee(route('contact', ['intent' => 'consultation', 'service' => config('portfolio-catalog.service_links.'.$slug)]).'#enquiry')
                 ->assertDontSee('project-disclaimer', false);
         }
         DB::table('portfolio_projects')->where('slug', 'alfa-network')->update(['title' => 'Edited project']);
@@ -105,21 +118,41 @@ class WebsiteTest extends TestCase
 
     public function test_enquiry_is_stored_and_sanitized(): void
     {
+        config(['mail.default' => 'array', 'howvanta.notification_email' => 'qa-inbox@example.com']);
         $data = $this->enquiry();
         $data['name'] = '<b>Avery Smith</b>';
-        $this->post('/contact', $data)->assertRedirect('/contact')->assertSessionHas('success');
+        $this->post('/contact', $data)->assertRedirect('/contact/thank-you')->assertSessionHas('success');
         $this->assertDatabaseHas('enquiries', ['name' => 'Avery Smith', 'email' => 'avery@example.com', 'status' => 'new', 'privacy_consent' => true]);
+        $this->actingAs(User::factory()->create(['role' => 'administrator']))->get('/admin')
+            ->assertOk()->assertSee('Avery Smith')->assertSee('avery@example.com');
+
+        $sent = Mail::mailer()->getSymfonyTransport()->messages()->sole()->getOriginalMessage();
+        $this->assertSame('qa-inbox@example.com', $sent->getTo()[0]->getAddress());
+        $this->assertSame('New Howvanta enquiry', $sent->getSubject());
+        $this->assertStringNotContainsString('avery@example.com', $sent->getTextBody());
     }
 
-    public function test_business_map_is_embedded_in_footer_and_contact_page(): void
+    public function test_business_map_only_loads_on_contact_after_expansion(): void
     {
-        foreach (['/' => 1, '/contact' => 2] as $url => $expectedMapCount) {
-            $response = $this->get($url)->assertOk()
-                ->assertSee('https://maps.app.goo.gl/FrwtE6Fu5k86bNHp6', false)
-                ->assertSee('title="Howvanta Technologies location on Google Maps"', false);
+        $this->get('/')->assertOk()->assertDontSee('data-location-map', false);
+        $this->get('/contact')->assertOk()
+            ->assertSee('data-location-map', false)
+            ->assertSee('data-src="https://www.google.com/maps?', false)
+            ->assertDontSee(' src="https://www.google.com/maps?', false);
+    }
 
-            $this->assertSame($expectedMapCount, substr_count($response->getContent(), 'https://www.google.com/maps?cid=2162906646691477460&amp;output=embed'));
-        }
+    public function test_portfolio_redirects_legacy_urls_and_filters_projects_by_industry(): void
+    {
+        DB::table('portfolio_projects')->insert([
+            'slug' => 'mobile-shop-billing', 'title' => 'Mobile shop billing', 'category' => 'Software',
+            'description' => 'A published retail project.', 'status' => 'published', 'published_at' => now(),
+        ]);
+
+        $this->get('/portfolio/legacy-project-1-stock-billing-software-of-mobile-shop')
+            ->assertStatus(301)->assertRedirect('/portfolio/mobile-shop-billing');
+        $this->get('/portfolio?industry=Retail')->assertOk()->assertSee('1 project')
+            ->assertSee('Mobile shop billing')->assertDontSee('ALFA Network');
+        $this->get('/sitemap.xml')->assertSee('/portfolio/mobile-shop-billing')->assertDontSee('legacy-project-1-');
     }
 
     public function test_invalid_enquiries_are_not_stored(): void
@@ -139,7 +172,7 @@ class WebsiteTest extends TestCase
         $this->post('/contact', $data)->assertSessionHasErrors('website');
         unset($data['website']);
         $data['status'] = 'converted';
-        $this->post('/contact', $data)->assertRedirect('/contact');
+        $this->post('/contact', $data)->assertRedirect('/contact/thank-you');
         $this->assertDatabaseHas('enquiries', ['status' => 'new']);
     }
 
@@ -151,6 +184,18 @@ class WebsiteTest extends TestCase
         $this->post('/contact', $this->enquiry())->assertStatus(429);
     }
 
+    public function test_contact_clicks_are_counted_by_day_and_action(): void
+    {
+        $this->postJson(route('contact.click'), ['action' => 'email'])->assertNoContent();
+        $this->postJson(route('contact.click'), ['action' => 'email'])->assertNoContent();
+        $this->postJson(route('contact.click'), ['action' => 'booking'])->assertNoContent();
+        $this->postJson(route('contact.click'), ['action' => 'proposal_sent'])->assertUnprocessable();
+
+        $this->assertDatabaseHas('website_contact_clicks', ['day' => today()->toDateString(), 'action' => 'email', 'clicks' => 2]);
+        $this->assertDatabaseHas('website_contact_clicks', ['day' => today()->toDateString(), 'action' => 'booking', 'clicks' => 1]);
+        $this->assertDatabaseCount('website_contact_clicks', 2);
+    }
+
     public function test_dashboard_requires_administrator(): void
     {
         $this->get('/admin')->assertRedirect('/login');
@@ -159,8 +204,20 @@ class WebsiteTest extends TestCase
         $admin = User::factory()->create();
         $admin->role = 'administrator';
         $admin->save();
-        Enquiry::create(array_merge($this->enquiry(), ['privacy_consent' => true]));
-        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Avery Smith')->assertSee('Recent enquiries');
+        $enquiry = Enquiry::create(array_merge($this->enquiry(), ['privacy_consent' => true, 'intent' => 'support']));
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('Avery Smith')->assertSee('Ask About Support');
+        $this->patch(route('admin.enquiries.update', $enquiry), ['status' => 'new', 'assigned_to' => $staff->id])
+            ->assertSessionHasErrors('assigned_to');
+        $this->patch(route('admin.enquiries.update', $enquiry), ['status' => 'qualified', 'assigned_to' => $admin->id, 'consultation_booked' => true, 'proposal_sent' => true])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('enquiries', ['id' => $enquiry->id, 'status' => 'qualified', 'assigned_to' => $admin->id]);
+        $enquiry->refresh();
+        $this->assertNotNull($enquiry->qualified_at);
+        $this->assertNotNull($enquiry->consultation_booked_at);
+        $this->assertNotNull($enquiry->proposal_sent_at);
+        $this->patch(route('admin.enquiries.update', $enquiry), ['status' => 'converted', 'consultation_booked' => false])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('enquiries', ['id' => $enquiry->id, 'qualified_at' => $enquiry->qualified_at, 'consultation_booked_at' => null, 'proposal_sent_at' => $enquiry->proposal_sent_at]);
     }
 
     public function test_login_and_logout(): void

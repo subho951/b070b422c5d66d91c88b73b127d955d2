@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContactClickController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\MediaController;
@@ -18,12 +19,15 @@ Route::middleware(WebsiteMaintenance::class)->group(function (): void {
     foreach (['about', 'services', 'portfolio', 'testimonials', 'contact', 'engagement', 'privacy', 'terms'] as $page) {
         Route::get('/'.$page, [PublicController::class, 'page'])->defaults('page', $page)->name($page);
     }
+    Route::get('/subhomoy-samanta', [PublicController::class, 'founder'])->name('founder');
     Route::redirect('/about-us', '/about');
     Route::redirect('/contact-us', '/contact');
     Route::redirect('/solutions', '/services');
     Route::get('/services/{slug}', [PublicController::class, 'service'])->name('services.show');
     Route::get('/portfolio/{slug}', [PublicController::class, 'project'])->name('portfolio.show');
+    Route::view('/contact/thank-you', 'contact-thanks')->name('contact.thanks');
     Route::post('/contact', [EnquiryController::class, 'store'])->middleware('throttle:5,10')->name('enquiries.store');
+    Route::post('/contact-click', ContactClickController::class)->middleware('throttle:30,1')->withoutMiddleware(VerifyRecaptcha::class)->name('contact.click');
     Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('sitemap');
 });
 Route::get('/media/{id}', [MediaController::class, 'show'])->whereNumber('id')->name('media.show');
@@ -69,7 +73,6 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::put('/settings/branding', [WebsiteDesignController::class, 'saveAppearance'])->name('settings.branding.update');
     Route::put('/settings/password', [SettingsController::class, 'password'])->middleware('throttle:5,1')->name('settings.password');
     Route::put('/settings/email', [SettingsController::class, 'email'])->name('settings.email');
-    Route::put('/settings/reviews', [SettingsController::class, 'reviews'])->name('settings.reviews');
     Route::put('/settings/sms', [SettingsController::class, 'sms'])->name('settings.sms');
     Route::put('/settings', [ContentController::class, 'saveSettings'])->name('settings.update');
     Route::get('/content/{section}', [ContentController::class, 'index'])->name('content.index');
