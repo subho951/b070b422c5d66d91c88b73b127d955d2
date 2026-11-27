@@ -68,6 +68,8 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::get('/appearance', [WebsiteDesignController::class, 'appearance'])->name('appearance');
     Route::put('/appearance', [WebsiteDesignController::class, 'saveAppearance'])->name('appearance.update');
     Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+    Route::get('/enquiries', [AdminController::class, 'enquiries'])->name('enquiries.index');
+    Route::get('/enquiries/{enquiry}', [AdminController::class, 'showEnquiry'])->whereNumber('enquiry')->name('enquiries.show');
     Route::patch('/enquiries/{enquiry}', [ContentController::class, 'enquiry'])->name('enquiries.update');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::put('/settings/branding', [WebsiteDesignController::class, 'saveAppearance'])->name('settings.branding.update');

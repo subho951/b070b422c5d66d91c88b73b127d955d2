@@ -11,7 +11,7 @@ class AdminController extends Controller
     public function index(): View
     {
         $start = today()->subDays(29);
-        $enquiries = Enquiry::query()->whereNull('deleted_at');
+        $enquiries = Enquiry::query();
         $contactClicks = DB::table('website_contact_clicks')->where('day', '>=', $start->toDateString())
             ->selectRaw('action, SUM(clicks) as total')->groupBy('action')->pluck('total', 'action');
 
@@ -27,8 +27,22 @@ class AdminController extends Controller
             'draftInvoiceCount' => DB::table('invoices')->where('status', 'draft')->count(),
             'newEnquiries' => Enquiry::where('status', 'new')->count(),
             'totalEnquiries' => Enquiry::count(),
+            'enquiries' => Enquiry::latest()->orderByDesc('id')->limit(5)->get(),
+        ]);
+    }
+
+    public function enquiries(): View
+    {
+        return view('admin.enquiries-index', [
+            'enquiries' => Enquiry::latest()->orderByDesc('id')->paginate(15),
+        ]);
+    }
+
+    public function showEnquiry(Enquiry $enquiry): View
+    {
+        return view('admin.enquiry-show', [
+            'enquiry' => $enquiry,
             'enquiryOwners' => DB::table('users')->where('role', 'administrator')->orderBy('name')->get(['id', 'name']),
-            'enquiries' => Enquiry::latest()->paginate(15),
         ]);
     }
 }

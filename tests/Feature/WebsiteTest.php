@@ -272,7 +272,43 @@ class WebsiteTest extends TestCase
         $admin = User::factory()->create();
         $admin->role = 'administrator';
         $admin->save();
-        Enquiry::create(array_merge($this->enquiry(), ['privacy_consent' => true, 'description' => '<script>alert(1)</script>']));
-        $this->actingAs($admin)->get('/admin')->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert(1)</script>', false);
+        $enquiry = Enquiry::factory()->create(['description' => '<script>alert(1)</script>']);
+
+        $this->actingAs($admin)->get(route('admin.enquiries.show', $enquiry))
+            ->assertOk()
+            ->assertSee($enquiry->email)
+            ->assertSee('&lt;script&gt;', false)
+            ->assertDontSee('<script>alert(1)</script>', false);
+    }
+
+    public function test_administrator_can_browse_enquiries_from_the_dashboard(): void
+    {
+        $admin = User::factory()->create(['role' => 'administrator']);
+        $older = Enquiry::factory()->create(['name' => 'Older Enquiry', 'created_at' => now()->subDay()]);
+        Enquiry::factory()->count(14)->create();
+        $newest = Enquiry::factory()->create(['name' => 'Newest Enquiry']);
+        $deleted = Enquiry::factory()->create(['name' => 'Deleted Enquiry']);
+        $deleted->delete();
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertSee(route('admin.enquiries.index'));
+        $this->get(route('admin.enquiries.index'))->assertOk()
+            ->assertSee('Newest Enquiry')
+            ->assertSee(route('admin.enquiries.show', $newest))
+            ->assertDontSee('Older Enquiry')
+            ->assertDontSee('Deleted Enquiry');
+        $this->get(route('admin.enquiries.index', ['page' => 2]))->assertOk()
+            ->assertSee(route('admin.enquiries.show', $older));
+        $this->get(route('admin.enquiries.show', $deleted))->assertNotFound();
+    }
+
+    public function test_enquiry_pages_require_an_administrator(): void
+    {
+        $enquiry = Enquiry::factory()->create();
+        $staff = User::factory()->create(['role' => 'staff']);
+
+        $this->get(route('admin.enquiries.index'))->assertRedirect(route('login'));
+        $this->get(route('admin.enquiries.show', $enquiry))->assertRedirect(route('login'));
+        $this->actingAs($staff)->get(route('admin.enquiries.index'))->assertForbidden();
+        $this->get(route('admin.enquiries.show', $enquiry))->assertForbidden();
     }
 }
