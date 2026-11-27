@@ -21,8 +21,8 @@ class EnquiryController extends Controller
         if (! empty($data['budget'])) {
             $data['budget'] = ContactOptions::budgets($data['country'])[$data['budget']];
         }
-        Enquiry::create($data);
-        app(CommunicationSettings::class)->notifyEnquiry();
+        $enquiry = Enquiry::create($data);
+        app(CommunicationSettings::class)->notifyEnquiry($enquiry);
 
         return redirect()->route('contact.thanks')->with('success', 'Thank you. Your project enquiry has been received. Our team will be in touch.');
     }

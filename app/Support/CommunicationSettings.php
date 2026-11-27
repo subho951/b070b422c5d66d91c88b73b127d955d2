@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Enquiry;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +21,10 @@ class CommunicationSettings
         return $record->type === 'encrypted' ? Crypt::decryptString($record->value) : $record->value;
     }
 
-    public function notifyEnquiry(): void
+    public function notifyEnquiry(Enquiry $enquiry): void
     {
         try {
-            $this->sendEnquiryEmail();
+            $this->sendEnquiryEmail($enquiry);
         } catch (\Throwable) {
             Log::warning('Enquiry saved; email notification delivery failed.');
         }
@@ -42,7 +43,7 @@ class CommunicationSettings
         app('mail.manager')->purge('smtp');
     }
 
-    private function sendEnquiryEmail(): void
+    private function sendEnquiryEmail(Enquiry $enquiry): void
     {
         $enabled = $this->value('email.enabled');
         if ($enabled !== null && $enabled !== '1') {
@@ -55,6 +56,27 @@ class CommunicationSettings
         if ($enabled === '1') {
             $this->applyMailConfiguration();
         }
-        Mail::raw('A new enquiry is available in the protected Howvanta dashboard.', fn (Message $message) => $message->to($recipient)->subject('New Howvanta enquiry'));
+        $subject = 'New Howvanta enquiry from '.str_replace(["\r", "\n"], ' ', $enquiry->name).' <'.$enquiry->email.'>';
+        $fields = [
+            'Name' => $enquiry->name,
+            'Email' => $enquiry->email,
+            'Phone' => $enquiry->phone,
+            'Company' => $enquiry->company,
+            'Country' => $enquiry->country,
+            'Intent' => ContactOptions::Intents[$enquiry->intent] ?? $enquiry->intent,
+            'Project type' => config('howvanta.services.'.$enquiry->project_type.'.0', $enquiry->project_type),
+            'Budget' => $enquiry->budget,
+            'Budget currency' => $enquiry->budget_currency,
+            'Timeline' => $enquiry->timeline,
+            'Privacy consent' => $enquiry->privacy_consent ? 'Given' : 'Not recorded',
+        ];
+        $lines = ['Enquiry #'.$enquiry->id];
+        foreach ($fields as $label => $value) {
+            $lines[] = $label.': '.(filled($value) ? $value : 'Not specified');
+        }
+        $lines[] = "\nMessage:\n".$enquiry->description;
+        $lines[] = "\nView enquiry: ".route('admin.enquiries.show', $enquiry);
+
+        Mail::raw(implode("\n", $lines), fn (Message $message) => $message->to($recipient)->subject($subject));
     }
 }

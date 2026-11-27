@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Enquiry;
 use App\Models\User;
 use App\Support\CommunicationSettings;
 use Database\Seeders\WebsiteSeeder;
@@ -137,7 +138,7 @@ class AdminSettingsTest extends TestCase
         $this->get('/admin/settings?tab=sms')->assertOk()->assertSee('Authentication Key')->assertSee('Sender ID')->assertSee('Base URL')->assertDontSee('sms-secret')->assertDontSee($encrypted)->assertDontSee('Account SID')->assertDontSee('name="provider"', false);
         $this->put('/admin/settings/sms', array_replace($this->smsData(), ['sms_authentication_key' => '']))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame($encrypted, DB::table('site_settings')->where('key', 'sms.authentication_key')->value('value'));
-        app(CommunicationSettings::class)->notifyEnquiry();
+        app(CommunicationSettings::class)->notifyEnquiry(Enquiry::factory()->create());
         Http::assertNothingSent();
     }
 

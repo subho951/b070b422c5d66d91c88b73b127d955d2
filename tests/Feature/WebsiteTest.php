@@ -154,8 +154,10 @@ class WebsiteTest extends TestCase
 
         $sent = Mail::mailer()->getSymfonyTransport()->messages()->sole()->getOriginalMessage();
         $this->assertSame('qa-inbox@example.com', $sent->getTo()[0]->getAddress());
-        $this->assertSame('New Howvanta enquiry', $sent->getSubject());
-        $this->assertStringNotContainsString('avery@example.com', $sent->getTextBody());
+        $this->assertSame('New Howvanta enquiry from Avery Smith <avery@example.com>', $sent->getSubject());
+        foreach (['Name: Avery Smith', 'Email: avery@example.com', 'Phone: +44 7700 900123', 'Company: Example Ltd', 'Country: United Kingdom', 'Budget: Not specified', 'Privacy consent: Given', $data['description'], route('admin.enquiries.show', Enquiry::sole())] as $detail) {
+            $this->assertStringContainsString($detail, $sent->getTextBody());
+        }
     }
 
     public function test_business_map_only_loads_on_contact_after_expansion(): void
