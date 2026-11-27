@@ -20,9 +20,9 @@ Route::middleware(WebsiteMaintenance::class)->group(function (): void {
         Route::get('/'.$page, [PublicController::class, 'page'])->defaults('page', $page)->name($page);
     }
     Route::get('/subhomoy-samanta', [PublicController::class, 'founder'])->name('founder');
-    Route::redirect('/about-us', '/about');
-    Route::redirect('/contact-us', '/contact');
-    Route::redirect('/solutions', '/services');
+    Route::permanentRedirect('/about-us', '/about');
+    Route::permanentRedirect('/contact-us', '/contact');
+    Route::permanentRedirect('/solutions', '/services');
     Route::get('/services/{slug}', [PublicController::class, 'service'])->name('services.show');
     Route::get('/portfolio/{slug}', [PublicController::class, 'project'])->name('portfolio.show');
     Route::view('/contact/thank-you', 'contact-thanks')->name('contact.thanks');

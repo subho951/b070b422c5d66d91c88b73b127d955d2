@@ -7,6 +7,12 @@ Require all granted
 
     RewriteEngine On
 
+    # Consolidate the public production origins.
+    RewriteCond %{HTTP_HOST} ^www\.howvanta\.com$ [NC,OR]
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^(www\.)?howvanta\.com$ [NC]
+    RewriteRule ^ https://howvanta.com%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

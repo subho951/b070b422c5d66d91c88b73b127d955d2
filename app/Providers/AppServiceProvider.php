@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\WebsiteContent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -15,6 +16,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->isProduction()) {
+            $origin = config('app.url');
+            URL::useOrigin($origin);
+            URL::forceScheme(parse_url($origin, PHP_URL_SCHEME));
+        }
+
         View::composer('*', fn (\Illuminate\View\View $view) => $view->with('website', new WebsiteContent));
         Gate::define('access-admin', fn (User $user) => $user->role === 'administrator');
         View::composer(['testimonials', 'components.testimonial-slider'], function (\Illuminate\View\View $view): void {

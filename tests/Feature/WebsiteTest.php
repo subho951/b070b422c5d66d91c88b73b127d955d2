@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Enquiry;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use Database\Seeders\FeaturedProjectSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,6 +46,31 @@ class WebsiteTest extends TestCase
         $this->get('/missing')->assertNotFound()->assertSee('back on track');
         $this->get('/services/unknown')->assertNotFound();
         $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml')->assertSee('/services/custom-software');
+    }
+
+    public function test_production_canonical_and_sitemap_use_the_configured_origin(): void
+    {
+        $this->app->instance('env', 'production');
+        config(['app.url' => 'https://howvanta.com']);
+        $this->app->register(AppServiceProvider::class, force: true);
+
+        $this->get('http://www.howvanta.com/about?source=example')
+            ->assertOk()
+            ->assertHeaderMissing('X-Robots-Tag')
+            ->assertSee('<link rel="canonical" href="https://howvanta.com/about">', false);
+
+        $this->get('http://www.howvanta.com/sitemap.xml')
+            ->assertOk()
+            ->assertSee('<loc>https://howvanta.com/about</loc>', false)
+            ->assertDontSee('www.howvanta.com')
+            ->assertDontSee('/about-us');
+    }
+
+    public function test_legacy_page_aliases_redirect_permanently(): void
+    {
+        foreach (['/about-us' => 'about', '/contact-us' => 'contact', '/solutions' => 'services'] as $alias => $destination) {
+            $this->get($alias)->assertStatus(301)->assertRedirectToRoute($destination);
+        }
     }
 
     public function test_homepage_selection_is_independent_from_exclusive_portfolio_ordering(): void
