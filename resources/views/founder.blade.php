@@ -148,6 +148,7 @@
 
     <footer class="personal-footer">
         <div class="personal-wrap"><span>Subhomoy Samanta · Howrah, West Bengal, India</span><nav aria-label="Footer navigation"><a href="#personal-top">Back to top</a><a href="{{ route('privacy') }}">Privacy policy</a></nav></div>
+        <div class="personal-wrap"><x-analytics-preferences/></div>
     </footer>
 </body>
 </html>

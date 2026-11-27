@@ -1,3 +1,5 @@
+import { trackContactAnalytics } from './analytics';
+
 const toggle = document.querySelector('.menu-toggle');
 toggle?.addEventListener('click', () => {
     const expanded = toggle.getAttribute('aria-expanded') === 'true';
@@ -460,7 +462,9 @@ if (contactClickUrl && contactClickToken) {
         const link = event.target.closest?.('a[href]');
         if (!link) return;
 
-        const action = link.dataset.contactAction ?? { 'mailto:': 'email', 'tel:': 'phone' }[link.protocol];
+        const isWhatsApp = ['wa.me', 'api.whatsapp.com', 'web.whatsapp.com'].includes(link.hostname);
+        const action = link.dataset.contactAction ?? (isWhatsApp ? 'whatsapp' : { 'mailto:': 'email', 'tel:': 'phone' }[link.protocol]);
+        trackContactAnalytics(action);
         if (action) recordAction(action);
     });
 

@@ -1,20 +1,23 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AnalyticsConsentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactClickController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\EnquiryController;
+use App\Http\Controllers\LeadSourceReportController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\WebsiteDesignController;
+use App\Http\Middleware\TrackLeadAttribution;
 use App\Http\Middleware\VerifyRecaptcha;
 use App\Http\Middleware\WebsiteMaintenance;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(WebsiteMaintenance::class)->group(function (): void {
+Route::middleware([WebsiteMaintenance::class, TrackLeadAttribution::class])->group(function (): void {
     Route::get('/', [PublicController::class, 'page'])->name('home');
     foreach (['about', 'services', 'portfolio', 'testimonials', 'contact', 'engagement', 'privacy', 'terms'] as $page) {
         Route::get('/'.$page, [PublicController::class, 'page'])->defaults('page', $page)->name($page);
@@ -25,10 +28,11 @@ Route::middleware(WebsiteMaintenance::class)->group(function (): void {
     Route::permanentRedirect('/solutions', '/services');
     Route::get('/services/{slug}', [PublicController::class, 'service'])->name('services.show');
     Route::get('/portfolio/{slug}', [PublicController::class, 'project'])->name('portfolio.show');
-    Route::view('/contact/thank-you', 'contact-thanks')->name('contact.thanks');
+    Route::get('/contact/thank-you', [EnquiryController::class, 'thanks'])->name('contact.thanks');
+    Route::post('/analytics-consent', AnalyticsConsentController::class)->middleware('throttle:30,1,analytics-consent:')->withoutMiddleware(VerifyRecaptcha::class)->name('analytics.consent');
     Route::post('/contact', [EnquiryController::class, 'store'])->middleware('throttle:5,10')->name('enquiries.store');
-    Route::post('/contact-click', ContactClickController::class)->middleware('throttle:30,1')->withoutMiddleware(VerifyRecaptcha::class)->name('contact.click');
-    Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('sitemap');
+    Route::post('/contact-click', ContactClickController::class)->middleware('throttle:30,1,contact-click:')->withoutMiddleware(VerifyRecaptcha::class)->name('contact.click');
+    Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->withoutMiddleware(TrackLeadAttribution::class)->name('sitemap');
 });
 Route::get('/media/{id}', [MediaController::class, 'show'])->whereNumber('id')->name('media.show');
 Route::get('/robots.txt', fn () => response("User-agent: *\nDisallow: /admin\nSitemap: ".route('sitemap')."\n")->header('Content-Type', 'text/plain'));
@@ -69,6 +73,7 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::put('/appearance', [WebsiteDesignController::class, 'saveAppearance'])->name('appearance.update');
     Route::get('/', [AdminController::class, 'index'])->name('dashboard');
     Route::get('/enquiries', [AdminController::class, 'enquiries'])->name('enquiries.index');
+    Route::get('/enquiries/sources', LeadSourceReportController::class)->name('enquiries.sources');
     Route::get('/enquiries/{enquiry}', [AdminController::class, 'showEnquiry'])->whereNumber('enquiry')->name('enquiries.show');
     Route::patch('/enquiries/{enquiry}', [ContentController::class, 'enquiry'])->name('enquiries.update');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');

@@ -1,4 +1,7 @@
 <x-layout title="Thank you for your enquiry" description="What happens after you send Howvanta Technologies an enquiry." :no-index="true">
+    @if($conversion && session('analytics_consent') === true)
+        <span data-analytics-conversion="{{ $conversion }}" hidden></span>
+    @endif
     <section class="section">
         <div class="container prose">
             <h1>{{ session('success') ? 'Your enquiry has been received' : 'What happens after an enquiry' }}</h1>
